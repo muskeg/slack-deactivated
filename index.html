@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Slack Deactivated Avatar Generator</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Deactivated Account Avatar</h1>
+      <p class="subtitle">Generate a Slack-style deactivated profile picture</p>
+
+      <div id="drop-zone">
+        <p>Drop an image here or click to browse</p>
+        <input type="file" id="file-input" accept="image/*" />
+      </div>
+
+      <div id="preview-section" class="hidden">
+        <canvas id="preview"></canvas>
+        <div id="controls">
+          <label>
+            <input type="checkbox" id="grayscale" />
+            Grayscale
+          </label>
+          <button id="download">Download PNG</button>
+        </div>
+      </div>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
