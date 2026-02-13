@@ -77,6 +77,35 @@ document.addEventListener('mouseup', () => {
   isDragging = false;
 });
 
+// Canvas zoom interaction (mouse wheel)
+canvas.addEventListener('wheel', (e) => {
+  if (!imagePosition || !currentImage) return;
+  
+  e.preventDefault();
+  
+  // Get mouse position relative to canvas
+  const canvasRect = canvas.getBoundingClientRect();
+  const mouseX = e.clientX - canvasRect.left;
+  const mouseY = e.clientY - canvasRect.top;
+  const canvasScale = canvas.width / canvasRect.width;
+  const canvasMouseX = mouseX * canvasScale;
+  const canvasMouseY = mouseY * canvasScale;
+  
+  // Calculate zoom factor
+  const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+  const oldScale = imagePosition.scale;
+  const newScale = oldScale * zoomFactor;
+  
+  // Update scale
+  imagePosition.scale = newScale;
+  
+  // Adjust offset to zoom towards mouse position
+  imagePosition.offsetX = canvasMouseX - (canvasMouseX - imagePosition.offsetX) * (newScale / oldScale);
+  imagePosition.offsetY = canvasMouseY - (canvasMouseY - imagePosition.offsetY) * (newScale / oldScale);
+  
+  render();
+});
+
 // Click to browse
 dropZone.addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', () => {
