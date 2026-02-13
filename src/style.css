@@ -74,6 +74,8 @@ h1 {
   height: auto;
   border-radius: 8px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+  cursor: move;
+  user-select: none;
 }
 
 /* Controls */
@@ -101,7 +103,7 @@ h1 {
   cursor: pointer;
 }
 
-#download {
+#controls button {
   background: #1264a3;
   color: #fff;
   border: none;
@@ -113,7 +115,7 @@ h1 {
   transition: background 0.15s;
 }
 
-#download:hover {
+#controls button:hover {
   background: #0b4f8a;
 }
 

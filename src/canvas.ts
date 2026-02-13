@@ -5,10 +5,17 @@ export interface RenderOptions {
   grayscale: boolean;
 }
 
+export interface ImagePosition {
+  offsetX: number;
+  offsetY: number;
+  scale: number;
+}
+
 export function renderAvatar(
   canvas: HTMLCanvasElement,
   image: HTMLImageElement,
   overlay: HTMLImageElement,
+  position: ImagePosition,
   options: RenderOptions
 ): void {
   const ctx = canvas.getContext('2d')!;
@@ -16,21 +23,36 @@ export function renderAvatar(
   canvas.width = size;
   canvas.height = size;
 
-  // Determine center-crop region (largest square from center of source)
-  const srcSize = Math.min(image.naturalWidth, image.naturalHeight);
-  const sx = (image.naturalWidth - srcSize) / 2;
-  const sy = (image.naturalHeight - srcSize) / 2;
-
-  // Draw image (with optional grayscale filter)
+  // Draw the image with current position and scale
   ctx.save();
   if (options.grayscale) {
     ctx.filter = 'grayscale(100%)';
   }
-  ctx.drawImage(image, sx, sy, srcSize, srcSize, 0, 0, size, size);
+  
+  ctx.drawImage(
+    image,
+    position.offsetX,
+    position.offsetY,
+    image.naturalWidth * position.scale,
+    image.naturalHeight * position.scale
+  );
   ctx.restore();
 
   // Draw overlay at the bottom
   ctx.drawImage(overlay, 0, size - OVERLAY_HEIGHT, OVERLAY_WIDTH, OVERLAY_HEIGHT);
+}
+
+export function getInitialPosition(image: HTMLImageElement): ImagePosition {
+  const size = OVERLAY_WIDTH;
+  
+  // Scale image so the smaller dimension fills the square
+  const scale = size / Math.min(image.naturalWidth, image.naturalHeight);
+  
+  // Center the image
+  const offsetX = (size - image.naturalWidth * scale) / 2;
+  const offsetY = (size - image.naturalHeight * scale) / 2;
+  
+  return { offsetX, offsetY, scale };
 }
 
 export function loadOverlay(basePath: string): Promise<HTMLImageElement> {

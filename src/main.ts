@@ -1,4 +1,4 @@
-import { renderAvatar, loadOverlay, exportPNG } from './canvas';
+import { renderAvatar, loadOverlay, exportPNG, getInitialPosition, ImagePosition } from './canvas';
 
 const dropZone = document.getElementById('drop-zone')!;
 const fileInput = document.getElementById('file-input') as HTMLInputElement;
@@ -9,6 +9,14 @@ const downloadBtn = document.getElementById('download')!;
 
 let currentImage: HTMLImageElement | null = null;
 let overlayImage: HTMLImageElement | null = null;
+let imagePosition: ImagePosition | null = null;
+
+// Dragging state
+let isDragging = false;
+let dragStartX = 0;
+let dragStartY = 0;
+let startOffsetX = 0;
+let startOffsetY = 0;
 
 // Preload the overlay image
 const basePath = import.meta.env.BASE_URL;
@@ -17,8 +25,10 @@ loadOverlay(basePath).then((img) => {
 });
 
 function render(): void {
-  if (!currentImage || !overlayImage) return;
-  renderAvatar(canvas, currentImage, overlayImage, { grayscale: grayscaleCheckbox.checked });
+  if (!currentImage || !overlayImage || !imagePosition) return;
+  renderAvatar(canvas, currentImage, overlayImage, imagePosition, { 
+    grayscale: grayscaleCheckbox.checked 
+  });
 }
 
 function loadImage(file: File): void {
@@ -28,11 +38,44 @@ function loadImage(file: File): void {
   const img = new Image();
   img.onload = () => {
     currentImage = img;
+    imagePosition = getInitialPosition(img);
     previewSection.classList.remove('hidden');
     render();
   };
   img.src = url;
 }
+
+// Canvas drag interaction
+canvas.addEventListener('mousedown', (e) => {
+  if (!imagePosition) return;
+  
+  isDragging = true;
+  dragStartX = e.clientX;
+  dragStartY = e.clientY;
+  startOffsetX = imagePosition.offsetX;
+  startOffsetY = imagePosition.offsetY;
+  e.preventDefault();
+});
+
+document.addEventListener('mousemove', (e) => {
+  if (!isDragging || !imagePosition) return;
+  
+  const dx = e.clientX - dragStartX;
+  const dy = e.clientY - dragStartY;
+  
+  // Apply movement scaled to canvas display size
+  const canvasRect = canvas.getBoundingClientRect();
+  const scale = canvas.width / canvasRect.width;
+  
+  imagePosition.offsetX = startOffsetX + dx * scale;
+  imagePosition.offsetY = startOffsetY + dy * scale;
+  
+  render();
+});
+
+document.addEventListener('mouseup', () => {
+  isDragging = false;
+});
 
 // Click to browse
 dropZone.addEventListener('click', () => fileInput.click());
