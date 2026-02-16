@@ -1,5 +1,7 @@
 # Slack Deactivated Avatar Generator
 
+Live site: https://muskeg.github.io/slack-deactivated/
+
 Generate Slack-style "deactivated account" profile pictures.
 
 Upload any image, preview it with the deactivated overlay, optionally convert to grayscale, and download a 512x512 PNG. All processing happens in your browser — no data is uploaded.
