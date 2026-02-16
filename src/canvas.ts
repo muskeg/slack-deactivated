@@ -11,6 +11,8 @@ export interface ImagePosition {
   scale: number;
 }
 
+const MAX_SCALE_MULTIPLIER = 4;
+
 export function renderAvatar(
   canvas: HTMLCanvasElement,
   image: HTMLImageElement,
@@ -42,11 +44,38 @@ export function renderAvatar(
   ctx.drawImage(overlay, 0, size - OVERLAY_HEIGHT, OVERLAY_WIDTH, OVERLAY_HEIGHT);
 }
 
+export function getMinimumScale(image: HTMLImageElement): number {
+  const size = OVERLAY_WIDTH;
+  return size / Math.min(image.naturalWidth, image.naturalHeight);
+}
+
+export function clampImagePosition(
+  image: HTMLImageElement,
+  position: ImagePosition
+): ImagePosition {
+  const minScale = getMinimumScale(image);
+  const maxScale = minScale * MAX_SCALE_MULTIPLIER;
+  const scale = clamp(position.scale, minScale, maxScale);
+
+  const size = OVERLAY_WIDTH;
+  const imageWidth = image.naturalWidth * scale;
+  const imageHeight = image.naturalHeight * scale;
+
+  const minOffsetX = size - imageWidth;
+  const minOffsetY = size - imageHeight;
+
+  return {
+    scale,
+    offsetX: clamp(position.offsetX, minOffsetX, 0),
+    offsetY: clamp(position.offsetY, minOffsetY, 0),
+  };
+}
+
 export function getInitialPosition(image: HTMLImageElement): ImagePosition {
   const size = OVERLAY_WIDTH;
   
   // Scale image so the smaller dimension fills the square
-  const scale = size / Math.min(image.naturalWidth, image.naturalHeight);
+  const scale = getMinimumScale(image);
   
   // Center the image
   const offsetX = (size - image.naturalWidth * scale) / 2;
@@ -69,4 +98,8 @@ export function exportPNG(canvas: HTMLCanvasElement): void {
   link.download = 'deactivated-avatar.png';
   link.href = canvas.toDataURL('image/png');
   link.click();
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
 }

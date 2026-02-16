@@ -49,6 +49,11 @@ h1 {
   background: rgba(18, 100, 163, 0.08);
 }
 
+#drop-zone:focus-visible {
+  outline: 2px solid #1264a3;
+  outline-offset: 3px;
+}
+
 #drop-zone p {
   font-size: 0.95rem;
   color: #9a9b9e;
@@ -57,6 +62,17 @@ h1 {
 
 #file-input {
   display: none;
+}
+
+.status {
+  min-height: 1.2rem;
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  color: #9a9b9e;
+}
+
+.status[data-state='error'] {
+  color: #f58a8a;
 }
 
 /* Preview */
@@ -76,6 +92,7 @@ h1 {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
   cursor: move;
   user-select: none;
+  touch-action: none;
 }
 
 /* Controls */

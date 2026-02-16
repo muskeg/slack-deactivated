@@ -1,4 +1,11 @@
-import { renderAvatar, loadOverlay, exportPNG, getInitialPosition, ImagePosition } from './canvas';
+import {
+  renderAvatar,
+  loadOverlay,
+  exportPNG,
+  getInitialPosition,
+  clampImagePosition,
+  ImagePosition,
+} from './canvas';
 
 const dropZone = document.getElementById('drop-zone')!;
 const fileInput = document.getElementById('file-input') as HTMLInputElement;
@@ -6,10 +13,12 @@ const previewSection = document.getElementById('preview-section')!;
 const canvas = document.getElementById('preview') as HTMLCanvasElement;
 const grayscaleCheckbox = document.getElementById('grayscale') as HTMLInputElement;
 const downloadBtn = document.getElementById('download')!;
+const statusMessage = document.getElementById('status') as HTMLParagraphElement;
 
 let currentImage: HTMLImageElement | null = null;
 let overlayImage: HTMLImageElement | null = null;
 let imagePosition: ImagePosition | null = null;
+let currentObjectUrl: string | null = null;
 
 // Dragging state
 let isDragging = false;
@@ -17,11 +26,15 @@ let dragStartX = 0;
 let dragStartY = 0;
 let startOffsetX = 0;
 let startOffsetY = 0;
+let activePointerId: number | null = null;
 
 // Preload the overlay image
 const basePath = import.meta.env.BASE_URL;
 loadOverlay(basePath).then((img) => {
   overlayImage = img;
+  render();
+}).catch(() => {
+  setStatus('Failed to load the overlay. Please refresh and try again.', true);
 });
 
 function render(): void {
@@ -31,34 +44,70 @@ function render(): void {
   });
 }
 
+function setStatus(message: string, isError = false): void {
+  if (!statusMessage) return;
+  statusMessage.textContent = message;
+  statusMessage.dataset.state = isError ? 'error' : 'info';
+}
+
+function updatePosition(next: ImagePosition): void {
+  if (!currentImage) return;
+  imagePosition = clampImagePosition(currentImage, next);
+  render();
+}
+
 function loadImage(file: File): void {
-  if (!file.type.startsWith('image/')) return;
+  if (!file.type.startsWith('image/')) {
+    setStatus('Please choose a valid image file.', true);
+    return;
+  }
+
+  setStatus('');
+
+  if (currentObjectUrl) {
+    URL.revokeObjectURL(currentObjectUrl);
+  }
 
   const url = URL.createObjectURL(file);
+  currentObjectUrl = url;
   const img = new Image();
   img.onload = () => {
     currentImage = img;
     imagePosition = getInitialPosition(img);
     previewSection.classList.remove('hidden');
-    render();
+    updatePosition(imagePosition);
+    if (currentObjectUrl) {
+      URL.revokeObjectURL(currentObjectUrl);
+      currentObjectUrl = null;
+    }
+  };
+  img.onerror = () => {
+    setStatus('Could not read that image. Please try another file.', true);
+    if (currentObjectUrl) {
+      URL.revokeObjectURL(currentObjectUrl);
+      currentObjectUrl = null;
+    }
   };
   img.src = url;
 }
 
 // Canvas drag interaction
-canvas.addEventListener('mousedown', (e) => {
+canvas.addEventListener('pointerdown', (e) => {
   if (!imagePosition) return;
+  if (e.button !== 0) return;
   
   isDragging = true;
+  activePointerId = e.pointerId;
   dragStartX = e.clientX;
   dragStartY = e.clientY;
   startOffsetX = imagePosition.offsetX;
   startOffsetY = imagePosition.offsetY;
+  canvas.setPointerCapture(e.pointerId);
   e.preventDefault();
 });
 
-document.addEventListener('mousemove', (e) => {
-  if (!isDragging || !imagePosition) return;
+canvas.addEventListener('pointermove', (e) => {
+  if (!isDragging || !imagePosition || e.pointerId !== activePointerId) return;
   
   const dx = e.clientX - dragStartX;
   const dy = e.clientY - dragStartY;
@@ -67,14 +116,25 @@ document.addEventListener('mousemove', (e) => {
   const canvasRect = canvas.getBoundingClientRect();
   const scale = canvas.width / canvasRect.width;
   
-  imagePosition.offsetX = startOffsetX + dx * scale;
-  imagePosition.offsetY = startOffsetY + dy * scale;
-  
-  render();
+  updatePosition({
+    ...imagePosition,
+    offsetX: startOffsetX + dx * scale,
+    offsetY: startOffsetY + dy * scale,
+  });
 });
 
-document.addEventListener('mouseup', () => {
-  isDragging = false;
+canvas.addEventListener('pointerup', (e) => {
+  if (activePointerId === e.pointerId) {
+    isDragging = false;
+    activePointerId = null;
+  }
+});
+
+canvas.addEventListener('pointercancel', (e) => {
+  if (activePointerId === e.pointerId) {
+    isDragging = false;
+    activePointerId = null;
+  }
 });
 
 // Canvas zoom interaction (mouse wheel)
@@ -96,18 +156,22 @@ canvas.addEventListener('wheel', (e) => {
   const oldScale = imagePosition.scale;
   const newScale = oldScale * zoomFactor;
   
-  // Update scale
-  imagePosition.scale = newScale;
-  
   // Adjust offset to zoom towards mouse position
-  imagePosition.offsetX = canvasMouseX - (canvasMouseX - imagePosition.offsetX) * (newScale / oldScale);
-  imagePosition.offsetY = canvasMouseY - (canvasMouseY - imagePosition.offsetY) * (newScale / oldScale);
-  
-  render();
+  updatePosition({
+    scale: newScale,
+    offsetX: canvasMouseX - (canvasMouseX - imagePosition.offsetX) * (newScale / oldScale),
+    offsetY: canvasMouseY - (canvasMouseY - imagePosition.offsetY) * (newScale / oldScale),
+  });
 });
 
 // Click to browse
 dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    fileInput.click();
+  }
+});
 fileInput.addEventListener('change', () => {
   const file = fileInput.files?.[0];
   if (file) loadImage(file);

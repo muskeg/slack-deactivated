@@ -11,10 +11,11 @@
       <h1>Deactivated Account Avatar</h1>
       <p class="subtitle">Generate a Slack-style deactivated profile picture</p>
 
-      <div id="drop-zone">
-        <p>Drop an image here or click to browse</p>
+      <div id="drop-zone" role="button" tabindex="0" aria-describedby="drop-hint status">
+        <p id="drop-hint">Drop an image here or click to browse</p>
         <input type="file" id="file-input" accept="image/*" />
       </div>
+      <p id="status" class="status" role="status" aria-live="polite"></p>
 
       <div id="preview-section" class="hidden">
         <canvas id="preview"></canvas>
